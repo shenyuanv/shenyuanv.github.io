@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+<title>Jekyll theme for Programmers</title>
+<meta name="description" content="Jekyll theme for Programmers">
+<meta name="keywords" content="">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Simple State Machine Framework in c# &#8211; ">
+<meta property="og:description" content="Jekyll theme for Programmers">
+<meta property="og:url" content="http://vinitkumar.me/white-paper/2014/02/26/simple-state-machine-framework-in-c-number.html">
+<meta property="og:site_name" content="">
+
+<!-- Webmaster Tools verfication -->
+
+
+
+
+<link rel="canonical" href="http://vinitkumar.me/white-paper/2014/02/26/simple-state-machine-framework-in-c-number.html">
+<link href="http://vinitkumar.me/white-paper/feed.xml" type="application/atom+xml" rel="alternate" title=" Feed">
+
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="http://vinitkumar.me/white-paper/css/base.min.css" type="text/css" />
+<link rel="stylesheet" href="http://vinitkumar.me/white-paper/css/github.min.css" type="text/css" />
+<link rel="stylesheet" href="http://vinitkumar.me/white-paper/css/octicons.css" type="text/css" />
+<link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+
+</head>
+<body>
+  <div class="header-container">
+  <header>
+      <ul class="nav">
+        <!--Change the  URL here if working on an absolute domain-->
+        <li><a href=""><span class="mega-octicon octicon-terminal" style="margin-right: 6px;"></span>White Paper</a></li>
+        <li><a href="/about"><span class="mega-octicon octicon-person" style="margin-right: 6px;"></span>About</a></li>
+      </ul>
+  </header>
+  <!--<script data-gratipay-username="vinitkme" data-gratipay-widget="button" src="//grtp.co/v1.js"></script>-->
+</div>
+
+  <div class="container">
+    <p class="intro">
+      White Paper is a Jekyll theme most suited to be used on tech blogs that like their content to shine.
+    </p>
+  <h2>Simple State Machine Framework in c#</h2>
+<p class="meta">26 Feb 2014</p>
+
+<div class="post">
+<p>This blog post covers a very simple, light weight, yet flexible state machine framework in C# .Net.</p>
+
+<p><a href="https://github.com/mubeenh/SSM">Souce code on Github</a></p>
+
+<p><a href="https://www.nuget.org/packages/SSM/">Download NuGet package</a></p>
+
+<h2>Concept</h2>
+
+<p><strong>State :</strong> The state of a stateful entity. Represented by <code>IState</code></p>
+
+<p><strong>Stateful entity :</strong> An entity that has a defined state. Represented by <code>IStatefulEntity</code></p>
+
+<p><strong>Context :</strong> A context in which a state machine executes a transition. It is simply a set of configuration and data that governs the execution of a state machine. Represented by <code>IStateMachineContext</code></p>
+
+<p><strong>Transition handler :</strong> A component that handles a transition of a stateful entity between a source state to target state. Represented by <code>ITransitionHandler</code></p>
+
+<h2>Usage</h2>
+
+<p>Start by creating an entity that represents a state. </p>
+<figure class="highlight"><pre><code class="language-csharp" data-lang="csharp">
+    public class ServiceTicketState : IState
+    {
+        public string Code { get; set; }
+        public string Name { get; set; }
+        // ...
+    }
+
+</code></pre></figure>
+<p>Now, create a stateful entity by implementing <code>IStatefulEntity</code> interface. For exmaple:</p>
+<figure class="highlight"><pre><code class="language-csharp" data-lang="csharp">    public class ServiceTicket : IStatefulEntity&lt;ServiceTicketState&gt;
+    {
+        public ServiceTicketState State { get; set; }
+        public string Name { get; set; }
+        // ...
+    }
+</code></pre></figure>
+<p>Next comes transition handlers. A transition hadler is created by implementing <code>ITransitionHandler</code> interface. Below is an example of a generic transition handler that can be used to abstract common functionalities in our Service Ticket example.</p>
+<figure class="highlight"><pre><code class="language-csharp" data-lang="csharp">
+    public class GenericTransitionHandler : ITransitionHandler&lt;ServiceTicket, ServiceTicketState&gt;
+    {
+        public virtual string TransitionKey { get { return &quot;&quot;; } }
+
+        public virtual ServiceTicket Execute(ServiceTicket entity, ServiceTicketState nextState, IDictionary&lt;string, object&gt; argumentsMap = null)
+        {
+            entity.State = nextState;
+            return entity;
+        }
+
+        public virtual ServiceTicket ValidateTransition(ServiceTicket entity, ServiceTicketState nextState, IDictionary&lt;string, object&gt; argumentsMap = null)
+        {
+            return entity;
+        }
+
+        public virtual void BeforeTransition(ServiceTicket entity, IDictionary&lt;string, object&gt; argumentsMap = null)
+        {
+
+        }
+
+        public virtual void AfterTransition(ServiceTicket entity, IDictionary&lt;string, object&gt; argumentsMap = null)
+        {
+
+        }
+    }
+</code></pre></figure>
+<p>Next and final step is to create a &#39;context&#39; by implementing <code>IStateMachineContext</code> interface. This interface declares following methods that need to be implemented to create a context.</p>
+<figure class="highlight"><pre><code class="language-csharp" data-lang="csharp">ICollection&lt;StateTransition&gt; GetTransitions();
+IDictionary&lt;string, ITransitionHandler&lt;T,M&gt;&gt; GetTransitionHandlersMap();
+ICollection&lt;M&gt; AllStates();
+</code></pre></figure>
+<p>Implementation approach is left to the user. It could from just hard coding for simple cases to database backed storage and retrieval for more advanced cases.</p>
+
+<p>Here is an example implementation (hard coded for simplicity) </p>
+<figure class="highlight"><pre><code class="language-csharp" data-lang="csharp">        public ICollection&lt;StateTransition&gt; GetTransitions()
+        {
+            ICollection&lt;StateTransition&gt; map = new List&lt;StateTransition&gt;();
+            // Define all possible transitions, and its source and target states
+            map.Add(new StateTransition(&quot;?&quot;, &quot;Transition_New&quot;, &quot;New&quot;)); // ? means null or undefined state
+            map.Add(new StateTransition(&quot;New&quot;, &quot;Transition_Open&quot;, &quot;Open&quot;));
+            map.Add(new StateTransition(&quot;Open&quot;, &quot;Transition_Close&quot;, &quot;Closed&quot;));
+            map.Add(new StateTransition(&quot;Closed&quot;, &quot;Transition_ReOpen&quot;, &quot;Open&quot;));
+            map.Add(new StateTransition(&quot;?&quot;, &quot;Transition_Cancel&quot;, &quot;Cancelled&quot;));
+
+            return map;
+        }
+
+        public IDictionary&lt;string, ITransitionHandler&lt;ServiceTicket, ServiceTicketState&gt;&gt; GetTransitionHandlersMap()
+        {
+            IDictionary&lt;string, ITransitionHandler&lt;ServiceTicket, ServiceTicketState&gt;&gt; map = new Dictionary&lt;string, ITransitionHandler&lt;ServiceTicket, ServiceTicketState&gt;&gt;();
+            // create a map of all available transitions and their respective transition handlers
+            map.Add(&quot;Transition_New&quot;, new NewTransitionHandler());
+            map.Add(&quot;Transition_Open&quot;, new OpenTransitionHandler());
+            map.Add(&quot;Transition_Close&quot;, new CloseTransitionHandler());
+            map.Add(&quot;Transition_ReOpen&quot;, new OpenTransitionHandler());
+
+            return map;
+        }
+
+        public ICollection&lt;ServiceTicketState&gt; AllStates()
+        {
+            List&lt;ServiceTicketState&gt; states = new List&lt;ServiceTicketState&gt;();
+            // create a list of all possible states
+            states.Add(new ServiceTicketState() { Code = &quot;New&quot;, Name = &quot;New Ticket&quot; });
+            states.Add(new ServiceTicketState() { Code = &quot;Open&quot;, Name = &quot;Ticket Open&quot; });
+            states.Add(new ServiceTicketState() { Code = &quot;Closed&quot;, Name = &quot;Ticket Closed&quot; });
+            states.Add(new ServiceTicketState() { Code = &quot;Cancelled&quot;, Name = &quot;Ticket Cancelled&quot; });
+
+            return states;
+        }
+
+</code></pre></figure>
+<p>Now <code>ServiceTicket</code> entity can be transitioned through state machine. Create an instance of <code>StateMachine</code> as follows.</p>
+<figure class="highlight"><pre><code class="language-csharp" data-lang="csharp">            IStateMachineContext&lt;ServiceTicket, ServiceTicketState&gt; context = new ExampleStateMachineContext();
+            StateMachine&lt;ServiceTicket, ServiceTicketState&gt; StateMachine = new StateMachine&lt;ServiceTicket, ServiceTicketState&gt;(context);
+</code></pre></figure>
+<p>And request a transition as shown below.</p>
+<figure class="highlight"><pre><code class="language-csharp" data-lang="csharp">            ServiceTicket serviceTicket = new ServiceTicket()
+            {
+                 Name = &quot;An example service ticket&quot;
+            };
+
+            StateMachine.RequestTransition(serviceTicket, &quot;Transition_New&quot;);
+</code></pre></figure>
+<p>And thats it. Your state machine is ready to handle transitions on the Service Ticket example entity.</p>
+
+</div>
+
+<div class="keep-in-touch">
+  <p>
+    
+  </p>
+</div>
+<a href="https://twitter.com/share" class="twitter-share-button" data-via="" data-size="large" data-hashtags="gotchacode">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+
+
+
+  
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', '']);
+  _gaq.push(['_trackPageview']);
+  (function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </div><!-- /.main -->
+</body>
+</html>
