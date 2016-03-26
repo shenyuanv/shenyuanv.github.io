@@ -1,5 +1,7 @@
 name: White Paper
 markdown: redcarpet
+redcarpet:
+  extensions: ["no_intra_emphasis","fenced_code_blocks"]
 highlighter: true
 url: http://vinitkumar.me/white-paper
 gems: [jekyll-paginate,  jekyll-gist]
