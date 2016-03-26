@@ -4,12 +4,12 @@
   <meta charset="utf-8">
 <title>ShenYuanV's White Paper for Security</title>
 <meta name="description" content="ShenYuanV's White Paper for Security">
-
+<meta name="keywords" content="">
 
 <meta property="og:type" content="article">
-<meta property="og:title" content="A guide to your digital life &#8211; ">
+<meta property="og:title" content="Privilege Escalation in Kernel 101 - mmap &#8211; ">
 <meta property="og:description" content="ShenYuanV's White Paper for Security">
-<meta property="og:url" content="http://vinitkumar.me/white-paper/">
+<meta property="og:url" content="http://vinitkumar.me/white-paper/2014/03/14/privilege_escalation_in_kernel_101_mmap.html">
 <meta property="og:site_name" content="">
 
 <!-- Webmaster Tools verfication -->
@@ -17,7 +17,7 @@
 
 
 
-<link rel="canonical" href="http://vinitkumar.me/white-paper/">
+<link rel="canonical" href="http://vinitkumar.me/white-paper/2014/03/14/privilege_escalation_in_kernel_101_mmap.html">
 <link href="http://vinitkumar.me/white-paper/feed.xml" type="application/atom+xml" rel="alternate" title=" Feed">
 
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
@@ -44,13 +44,11 @@
     <p class="intro">
       ShenYuanV's White Paper.
     </p>
-  <div class="listing">
-    
-    <div class="post other link">
-      <h2><span class="mega-octicon octicon-flame" style="min-width: 32px;"></span><a href="/2014/03/14/privilege_escalation_in_kernel_101_mmap.html">Privilege Escalation in Kernel 101 - mmap</a></h2>
-      <p class="post-date">14 Mar 2014</p>
+  <h2>Privilege Escalation in Kernel 101 - mmap</h2>
+<p class="meta">14 Mar 2014</p>
 
-      <p><h1>Privilege Escalation 101</h1>
+<div class="post">
+<h1>Privilege Escalation 101</h1>
 
 <h2>mmap&amp;remap_pfn_range</h2>
 
@@ -220,23 +218,20 @@
 <h1>小结</h1>
 
 <p>以上的例子是在32位系统中没有开启内核代码只读的情况下才能够利用成功,由于攻防的演进,后面Android系统增加了很多诸如内核代码只读、PXN等安全功能,使得漏洞的完美利用更加困难,但通过此例子可以很好的了解内核提权的步骤以及思路.</p>
-</p>
-    </div>
+
+</div>
+
+<div class="keep-in-touch">
+  <p>
     
+  </p>
 </div>
+<a href="https://twitter.com/share" class="twitter-share-button" data-via="" data-size="large" data-hashtags="gotchacode">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
 
 
-  
 
-<!-- Pagination links -->
-<div class="pagination">
   
-    <span class="next"><span class="mega-octicon octicon-playback-rewind" style="min-width: 32px;"></span></span>
-  
-  
-    <span class="previous"><span class="mega-octicon octicon-playback-fast-forward" style="min-width: 32px;"></span></span>
-  
-</div>
 
 <script type="text/javascript">
   var _gaq = _gaq || [];
