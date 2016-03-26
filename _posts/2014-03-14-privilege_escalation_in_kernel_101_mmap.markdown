@@ -1,4 +1,4 @@
-﻿---
+---
 layout: post
 title: "Privilege Escalation in Kernel 101 - mmap"
 date: 2014-03-14 20:39:36 +0530
