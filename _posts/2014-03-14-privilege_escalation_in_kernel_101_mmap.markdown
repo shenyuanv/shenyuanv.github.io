@@ -17,14 +17,16 @@ mmap&remap_pfn_range
 [mmap man page](http://linux.die.net/man/2/mmap)
 [remap_pfn_range 使用方法](http://www.makelinux.net/ldd3/chp-15-sect-2)
 下面是mmap的linux API,它的作用是将指定地址和大小的内存映射到用户空间中以便程序进行内存操作,offset传入需要映射的物理地址偏移,length传入需要映射的长度.
-``` c
+
+```c
 void *mmap(void *addr, size_t length, int prot, int flags,
            int fd, off_t offset);
 ```
 **The mmap function asks to map length bytes starting  at offset  offset from  the  file  (or  other object) specified by the file descriptor fd into memory, preferably at address start.  This  latter  address  is  a hint  only,  and is usually specified as 0.  The actual place where the object is mapped is returned by mmap, and is never 0.**
 
 mmap是用户空间对内核请求映射内存的一个接口,调用这个接口后如果相关驱动支持此操作,会实现一个响应mmap的函数,一般情况下会在这个响应函数中调用remap_pfn_range,下面是linux man page上对remap_pfn_range的一个简单示例：
-``` c
+
+```c
 static int simple_remap_mmap(struct file *filp, struct vm_area_struct *vma)
 {
     if (remap_pfn_range(vma, vma->vm_start, vm->vm_pgoff,
@@ -42,6 +44,7 @@ static int simple_remap_mmap(struct file *filp, struct vm_area_struct *vma)
 #保护机制
 
 一个程序的内存空间可以分为两个部分,用户空间（user space）、内核空间（kernel space）,在正常情况下,操作系统中运行的程序只能够控制自身用户空间的内存,而内核空间是由操作系统控制,且运行在特权模式.一个程序的凭据（credential）保存了自身uid、权限等信息,而凭据储存在内核空间,所以运行在用户空间的普通程序无法修改自身的凭据,这就是linux的权限控制的一部分,它保证了操作系统的安全性.
+
 ```
 |--------------|
 | kernel space |
@@ -59,7 +62,8 @@ Exynos-Abuse是其中一个最典型的案例,而且这个漏洞的利用代码�
 ##获取全部物理地址的操作能力
 根据之前介绍过的一样,这个漏洞的利用方式第一步就是**获取全部物理地址的操作能力**,也就是下面这段代码做的工作：
 程序打开有漏洞的驱动后,通过mmap调用了内存映射的方法,参数中length和PHYS_OFFSET是至关重要的两个参数.
-``` c
+
+```c
   #define PHYS_OFFSET 0x40000000
     ......
   int page_size = sysconf(_SC_PAGE_SIZE);
@@ -81,7 +85,8 @@ Exynos-Abuse是其中一个最典型的案例,而且这个漏洞的利用代码�
   }
 ```
 要定位到想要修改的函数地址就需要获取内核符号表,一般情况下在执行打印内核符号表的函数时由于/proc/sys/kptr_restrict的限制,所有符号表地址都会打印为0,.在内核数据段中寻找字符串"%pK %c %s\n",并将其修改为"%p %c %s\n",可以绕过此限制将内核函数的正确地址打印出来.
-``` c
+
+```c
     /*
      * search the format string "%pK %c %s\n" in memory
      * and replace "%pK" by "%p" to force display kernel
@@ -105,7 +110,8 @@ Exynos-Abuse是其中一个最典型的案例,而且这个漏洞的利用代码�
     }
 ```
 拿到内核符号表后就可以定位需要修改的系统调用setresuid的地址了,查找地址的方法为读取/proc/kallsyms的值,修改上面的格式化字符串后再访问改文件时,获取到的地址已经是正确的内核地址.
-``` c
+
+```c
     found = false;
 
     /* kallsyms now display symbols address */       
@@ -133,7 +139,8 @@ Exynos-Abuse是其中一个最典型的案例,而且这个漏洞的利用代码�
         }
 ```
 找到setresuid的地址后开始搜索cmp r0,#0的机器码,找到后通过把setresuid中的cmp r0,#0,修改为cmp r0,#1将权限检查的逻辑取反.
-``` c
+
+```c
         if (found) {
             tmp = paddr;
             tmp += (addr_sym - PAGE_OFFSET) >> 2;
