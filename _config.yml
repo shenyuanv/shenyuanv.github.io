@@ -1,9 +1,7 @@
 name: White Paper
-markdown: redcarpet
-redcarpet:
-  extensions: ["no_intra_emphasis","fenced_code_blocks"]
-highlighter: true
-url: http://vinitkumar.me/white-paper
+markdown: kmarkdown
+highlighter: rouge
+url: http://shenyuanv.github.io
 gems: [jekyll-paginate,  jekyll-gist]
 paginate: 8
 description:     ShenYuanV's White Paper for Security
