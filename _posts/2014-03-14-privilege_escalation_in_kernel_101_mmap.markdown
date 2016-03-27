@@ -14,8 +14,11 @@ mmap&remap_pfn_range
 
 #漏洞成因
 在一段时期,各个厂商经常出现的漏洞中其中之一就是通过mmap控制全部物理内存.而出现这个问题的原因就是驱动开发人员没有正确地对remap_pfn_range这个函数中的参数做处理.
+
 [mmap man page](http://linux.die.net/man/2/mmap)
+
 [remap_pfn_range 使用方法](http://www.makelinux.net/ldd3/chp-15-sect-2)
+
 下面是mmap的linux API,它的作用是将指定地址和大小的内存映射到用户空间中以便程序进行内存操作,offset传入需要映射的物理地址偏移,length传入需要映射的长度.
 
 ```c
@@ -58,9 +61,11 @@ static int simple_remap_mmap(struct file *filp, struct vm_area_struct *vma)
   
 #具体案例Exynos-Abuse 
 Exynos-Abuse是其中一个最典型的案例,而且这个漏洞的利用代码也早早地公布了出来,从公布的利用代码来对这类漏洞的利用方式进行分析是最有效的方法.
+
 [Exynos-Abuse完整利用代码](https://raw.githubusercontent.com/mwrlabs/mercury-modules/master/metall0id/root/exynosmem/exynos-abuse/jni/exynos-abuse.c)
 ##获取全部物理地址的操作能力
 根据之前介绍过的一样,这个漏洞的利用方式第一步就是**获取全部物理地址的操作能力**,也就是下面这段代码做的工作：
+
 程序打开有漏洞的驱动后,通过mmap调用了内存映射的方法,参数中length和PHYS_OFFSET是至关重要的两个参数.
 
 ```c

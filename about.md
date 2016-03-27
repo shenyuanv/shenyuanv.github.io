@@ -1,6 +1,6 @@
 ---
 layout: default
-title: About Vinit Kumar
+title: About ShenYuanV
 ---
 
-Your introduction here
+email: shenyuanv#gmail.com
