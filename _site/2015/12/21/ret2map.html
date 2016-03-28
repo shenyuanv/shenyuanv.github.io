@@ -4,12 +4,12 @@
   <meta charset="utf-8">
 <title>ShenYuanV's White Paper for Security</title>
 <meta name="description" content="ShenYuanV's White Paper for Security">
-
+<meta name="keywords" content="">
 
 <meta property="og:type" content="article">
-<meta property="og:title" content="About ShenYuanV &#8211; ">
+<meta property="og:title" content="RET2MAP - a new way to bypass pxn &#8211; ">
 <meta property="og:description" content="ShenYuanV's White Paper for Security">
-<meta property="og:url" content="http://shenyuanv.github.io/about.html">
+<meta property="og:url" content="http://shenyuanv.github.io/2015/12/21/ret2map.html">
 <meta property="og:site_name" content="">
 
 <!-- Webmaster Tools verfication -->
@@ -17,7 +17,7 @@
 
 
 
-<link rel="canonical" href="http://shenyuanv.github.io/about.html">
+<link rel="canonical" href="http://shenyuanv.github.io/2015/12/21/ret2map.html">
 <link href="http://shenyuanv.github.io/feed.xml" type="application/atom+xml" rel="alternate" title=" Feed">
 
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
@@ -44,10 +44,29 @@
     <p class="intro">
       ShenYuanV's White Paper.
     </p>
-  <p>Web Security &amp; Android Security
-focusing on Android security recently
-遵守职业道德,博客中的记录不会透露出现工作中实际遇到的问题,只对通用技术进行分析
-email: shenyuanv#gmail.com</p>
+  <h2>RET2MAP - a new way to bypass pxn</h2>
+<p class="meta">21 Dec 2015</p>
+
+<div class="post">
+<h1 id="ret2map">RET2MAP</h1>
+
+<h2 id="a-new-way-to-bypass-pxn">a new way to bypass pxn</h2>
+
+<p>在开启PXN的设备上,ret2usr这样的技术已经无法使用.在2015年初,blackhat eu上公布了一个新的在内核中执行shellcode的方法,这种方法被称作ret2dir,同年的pingpong root也使用了ret2dir技术.但之后的内核补丁中修改了/proc/pid/pagemap的访问权限,使得普通进程无法读取页地址导致ret2dir方法失效.本文将介绍一种新的方法,这种方法已经在某款手机的利用上成功使用,它能够在无法访问pagemap的情况下继续实现内核执行任意shellcode,我把这个利用方法取名为<strong>ret2map</strong></p>
+
+<p>to be continued</p>
+
+
+</div>
+
+<div class="keep-in-touch">
+  <p>
+    
+  </p>
+</div>
+<a href="https://twitter.com/share" class="twitter-share-button" data-via="" data-size="large" data-hashtags="gotchacode">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+
 
 
   

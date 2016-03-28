@@ -47,14 +47,84 @@
   <div class="listing">
     
     <div class="post other link">
+      <h2><span class="mega-octicon octicon-flame" style="min-width: 32px;"></span><a href="/2015/12/21/ret2map.html">RET2MAP - a new way to bypass pxn</a></h2>
+      <p class="post-date">21 Dec 2015</p>
+
+      <p><h1 id="ret2map">RET2MAP</h1>
+
+<h2 id="a-new-way-to-bypass-pxn">a new way to bypass pxn</h2>
+
+<p>在开启PXN的设备上,ret2usr这样的技术已经无法使用.在2015年初,blackhat eu上公布了一个新的在内核中执行shellcode的方法,这种方法被称作ret2dir,同年的pingpong root也使用了ret2dir技术.但之后的内核补丁中修改了/proc/pid/pagemap的访问权限,使得普通进程无法读取页地址导致ret2dir方法失效.本文将介绍一种新的方法,这种方法已经在某款手机的利用上成功使用,它能够在无法访问pagemap的情况下继续实现内核执行任意shellcode,我把这个利用方法取名为<strong>ret2map</strong></p>
+
+<p>to be continued</p>
+
+</p>
+    </div>
+    
+    <div class="post other link">
       <h2><span class="mega-octicon octicon-flame" style="min-width: 32px;"></span><a href="/2015/04/21/how_to_exploit_write_what_where_ret2usr.html">How to exploit Write-what-where by using ret2usr</a></h2>
       <p class="post-date">21 Apr 2015</p>
 
       <p><h1 id="how-to-exploit-write-what-where-by-using-ret2usr---cve-2014-4322">How to exploit Write-what-where by using ret2usr - CVE-2014-4322</h1>
 
 <h2 id="cve-2014-4322ret2usr">CVE-2014-4322&amp;ret2usr</h2>
-<p>#漏洞成因
-CVE-2014-4322是2014年12月底公布的Android高通驱动漏洞，漏洞的原因官方描述为：</p>
+
+<p>写在最前面:<strong>ret2usr在32bit时代是一个很好用的技术,但随着pxn的开启,ret2usr也到了生命尽头.如果你想使用此方法提权,请确保你手上的设备没有开启pxn.</strong></p>
+
+<h1 id="section">漏洞成因</h1>
+<p>CVE-2014-4322是2014年12月底公布的Android高通驱动漏洞，漏洞的原因官方描述为：</p>
+
+<p>“<strong>The qseecom driver provides an ioctl system call interface to user space clients for communication. When processing this communication, the __qseecom_update_cmd_buf function uses the user-supplied value cmd_buf_offset as an index to a buffer for write operations without any boundary checks, allowing a local application with access to the qseecom device node to, e.g., escalate privileges.</strong>”</p>
+
+<p>简单来说就是ioctl调用时没有检查传入的参数就直接改变该指针指向的值，导致可以更改任意内存。
+XDA论坛的“zxz0O0”将此漏洞利用后开发出了GIEFROOT提权工具，本篇文档将会从提权利用的角度来分析此漏洞。</p>
+
+<h1 id="section-1">漏洞细节</h1>
+<p><a href="https://us.codeaurora.org/cgit/quic/la/kernel/msm-3.10/tree/drivers/misc/qseecom.c?h=APSS.FSM4.1.0&amp;id=60db6b16517d6a8ab96d6760b8e1df7fe7ae1c71">漏洞代码</a></p>
+
+<p>漏洞是处在ioctl接口中的
+<strong>QSEECOM_IOCTL_SEND_MODFD_CMD_REQ</strong>部分，在这个分支中调用的<strong>qseecom_send_modfd_cmd</strong>函数没有对地址进行合法性检查直接对传入的指针进行赋值。</p>
+
+<p><code class="highlighter-rouge">c
+uint32_t *update;
+update = (uint32_t *) field;
+if (cleanup)
+	*update = 0;
+else
+	*update = (uint32_t)sg_dma_address(sg_ptr-&gt;sgl);
+len += (uint32_t)sg-&gt;length;
+</code></p>
+
+<p>简单说,这个漏洞能造成的后果就是:<strong>用户空间可以将任意地址(内核空间以及用户空间)的值设置为任意值</strong>.</p>
+
+<h1 id="section-2">利用思路</h1>
+<p>这是一个典型的任意地址写漏洞,这类漏洞的思路可以简化为:</p>
+
+<blockquote>
+  <p>寻找进程credential地址</p>
+</blockquote>
+
+<blockquote>
+  <p>修改进程credential中自身的uid以及能力</p>
+</blockquote>
+
+<p>当然,这种方法最为直接,但有个问题需要解决:<strong>怎么确定credential的地址</strong>,一个进程的task_struct根据sp计算,而在开了ASLR的情况下无法定位到当前进程的内核sp,在不知道cred地址的情况下也无从下手.</p>
+
+<p>有没有不需要在用户空间先获取内核sp的利用方法?</p>
+
+<p>introducing <strong>RET2USR</strong>, 全称为return to user,顾名思义这种方法的思路就是讲内核执行的代码跳转到用户空间控制的地址从而执行任意代码.</p>
+
+<h1 id="section-3">具体案例</h1>
+<p><a href="https://github.com/retme7/CVE-2014-4322_poc">exploit by retme7</a></p>
+
+<p>1、打开驱动、更改进程名
+有漏洞的驱动位于/dev/qseecom，首先需要打开这个驱动文件对它进行操作，第一个值得注意的地方是exploit一开始就调用了prctl更改自己的进程名，这个举动的目的是让后面的程序更容易定位特定内存位置。</p>
+
+<p><code class="highlighter-rouge">c
+prctl(PR_SET_NAME, "ihoo.darkytools", 0, 0, 0);
+</code></p>
+
+<p>2、调用QSEECOM_IOCTL_SET_MEM_PARAM_REQ传入共享内存句柄以及shellcode内存地址</p>
 
 </p>
     </div>
